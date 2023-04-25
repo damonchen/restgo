@@ -5,19 +5,32 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"go.uber.org/zap"
 )
 
 var (
+	// ErrNotExistKey err not exist key
 	ErrNotExistKey = errors.New("not exists key")
+
+	logger *zap.Logger
 )
+
+func init() {
+	logger, _ = zap.NewProduction()
+}
 
 // StageExecutor 每个文件一个执行器
 type StageExecutor struct {
-	env   *Environment
-	stage *TestStage
+	logger *zap.Logger
+	env    *Environment
+	stage  *TestStage
+	debug  bool
 }
 
 func (e StageExecutor) evaluate() error {
+	defer logger.Sync()
+
 	stages := e.stage.Stages
 	for _, stage := range stages {
 		err := e.evaluateStage(stage)
@@ -31,7 +44,6 @@ func (e StageExecutor) evaluate() error {
 }
 
 func (e StageExecutor) evaluateStage(stage Stage) error {
-	fmt.Printf("state request %+v\n", stage.Request.JSON)
 	// 在执行前，先将需要替换的值替换掉
 	req, err := e.newRequest(stage.Request)
 	if err != nil {
@@ -61,12 +73,10 @@ func (e StageExecutor) evaluateStage(stage Stage) error {
 	for key, value := range stage.Response.JSON {
 		v := resp.JSON[key]
 		if v != value {
-			return errors.New(fmt.Sprintf("expect body %s with value %s, got %s",
+			return errors.New(fmt.Sprintf("expect body %s with value %v, got %v",
 				key, value, v))
 		}
 	}
-
-	fmt.Printf("save json value %+v, resp json %+v\n", stage.Response.Save.JSON, resp.JSON)
 
 	for key, value := range stage.Response.Save.JSON {
 		keys := strings.Split(value, ".")
@@ -83,7 +93,6 @@ func (e StageExecutor) evaluateStage(stage Stage) error {
 			}
 		}
 		e.env.Set(key, r)
-
 	}
 
 	return nil
@@ -169,11 +178,20 @@ func (e StageExecutor) replaceString(s string) (string, error) {
 	return s, nil
 }
 
-func Evaluate(stage *TestStage) error {
+func (e StageExecutor) log(format string, args ...interface{}) {
+	v := fmt.Sprintf(format, args...)
+	if e.debug {
+		e.logger.Debug(v)
+	}
+}
+
+func Evaluate(stage *TestStage, debug bool) error {
 	env := NewEnvironment()
 	executor := StageExecutor{
-		env:   env,
-		stage: stage,
+		logger: logger,
+		env:    env,
+		stage:  stage,
+		debug:  debug,
 	}
 	return executor.evaluate()
 }

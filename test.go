@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"os"
 
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 )
 
-func TestFile(file string) error {
+func TestFile(file string, debug bool) error {
 	testStage, err := loadTestFile(file)
 	if err != nil {
 		return err
 	}
 
-	return Evaluate(testStage)
+	return Evaluate(testStage, debug)
 }
 
 func loadTestFile(file string) (*TestStage, error) {

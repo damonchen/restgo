@@ -1,5 +1,13 @@
 package restgo
 
+type JSON struct {
+	Names map[string]interface{} `yaml:"json,omitempty"`
+}
+
+func (j *JSON) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	return unmarshal(&j.Names)
+}
+
 type Request struct {
 	URL     string                 `yaml:"url"`
 	Method  string                 `yaml:"method,omitempty"`

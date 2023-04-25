@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 )
@@ -76,7 +75,6 @@ func (c Client) get() (*Response, error) {
 }
 
 func (c Client) post() (*Response, error) {
-	fmt.Printf("post request data %+v\n", c.req.JSON)
 	data, err := json.Marshal(c.req.JSON)
 	if err != nil {
 		return nil, err
